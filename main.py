@@ -33,7 +33,7 @@ for file in sorted(os.listdir(pending)):
                     'content': [
                         {
                             'type': 'text',
-                            'text': 'If this is a picture of a white card with black lettering on it, respond with just the 5 digit number written on the card. If this is a picture of a key, respond with "front" if you can see the engraving "SC1" and "back" if you cannot.'
+                            'text': 'If this is a picture of a white card with black lettering on it, respond with just the 5 digit number written on the card. If this is a picture of a key, respond with "front" if you can see the engravings "SC1" & "USA", and "back" if you cannot.'
                         },
                         {
                             'type': 'image_url',
