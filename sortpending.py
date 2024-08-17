@@ -1,18 +1,15 @@
 import base64
-import io
 import os
 import shutil
 
 from openai import OpenAI
-
-import rawpy
-from PIL import Image
+from wand.image import Image
 
 client = OpenAI()
 
 # List all files and directories in the specified path
 path = 'data/RAW/SC1/BR1'
-pending = os.path.join(path, '00570')
+pending = os.path.join(path, 'pending')
 
 bitting = None
 
@@ -23,13 +20,11 @@ for file in sorted(os.listdir(pending)):
     print(file)
     filename = os.path.join(pending, file)
 
-    raw = rawpy.imread(filename).postprocess()
-    rgb = Image.fromarray(raw).convert('RGB')
-    smaller = rgb.resize((512, 384))
-
-    buf = io.BytesIO()
-    smaller.save(buf, format='JPEG')
-    blob_b64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    with Image(filename=filename) as img:
+        img.format = 'jpg'
+        img.resize(512, 384)
+        blob = img.make_blob()
+        blob_b64 = base64.b64encode(blob).decode('utf-8')
 
     chat_completion = client.chat.completions.create(
         messages=[
