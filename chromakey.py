@@ -1,17 +1,17 @@
 import os
 
 from sklearn.cluster import KMeans
+from wand.color import Color
 from wand.image import Image
 import numpy as np
 
 
-def chroma_key(img, object_colors=1, key_coords=(0,0)):
+def chroma_key(img, num_object_colors=1, key_coords=(0,0)):
     hsv = _hsv_points(img)
     hsv_cart = _hsv_to_cartesian(hsv)
-    labels = _cluster(hsv_cart, object_colors+1, img)
-    mask = _mask(labels, key_coords)
-    with Image.from_array(mask) as mask_img:
-        img.composite_channel('all_channels', mask_img, 'multiply')
+    labels = _cluster(hsv_cart, num_object_colors+1, img)
+    mask = _create_mask(labels, key_coords)
+    _apply_mask(img, mask)
 
 
 def _hsv_points(img):
@@ -38,9 +38,21 @@ def _cluster(points, num_clusters, img):
     return kmeans.labels_.reshape(img.height, img.width)
 
 
-def _mask(labels, key_coords):
+def _islands(mask):
+    z = np.zeros_like(mask)
+
+
+
+def _create_mask(labels, key_coords):
     key_label = labels[key_coords]
     return (labels != key_label).astype(np.uint8) * 255
+
+
+def _apply_mask(img, mask):
+    with Image.from_array(mask) as mask_img:
+        img.alpha_channel = 'activate'
+        img.composite_channel('alpha', mask_img, 'copy_alpha', 0, 0)
+        img.background_color = Color('transparent')
 
 
 path = 'data/RAW/SC1/BR1'
@@ -48,4 +60,4 @@ filename = os.path.join(path, '41244/back.orf')
 
 with Image(filename=filename) as img:
     chroma_key(img)
-    img.save(filename='masked_image.jpg')
+    img.save(filename='chromakey.png')
