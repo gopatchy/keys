@@ -6,11 +6,12 @@ from wand.image import Image
 import numpy as np
 
 
-def chroma_key(img, num_object_colors=1, key_coords=(0,0)):
+def chroma_key(img, num_object_colors=1, key_box=((0,0),(100,100))):
     hsv = _hsv_points(img)
     hsv_cart = _hsv_to_cartesian(hsv)
     labels = _cluster(hsv_cart, num_object_colors+1, img)
-    mask = _create_mask(labels, key_coords)
+    key_label = _choose_key(labels, key_box)
+    mask = _create_mask(labels, key_label)
     _apply_mask(img, mask)
 
 
@@ -38,13 +39,18 @@ def _cluster(points, num_clusters, img):
     return kmeans.labels_.reshape(img.height, img.width)
 
 
+def _choose_key(labels, key_box):
+    box_labels = labels[key_box[0][0]:key_box[1][0], key_box[0][1]:key_box[1][1]]
+    values, counts = np.unique(box_labels.flatten(), return_counts=True)
+    i = np.argmax(counts)
+    return values[i]
+
+
 def _islands(mask):
     z = np.zeros_like(mask)
 
 
-
-def _create_mask(labels, key_coords):
-    key_label = labels[key_coords]
+def _create_mask(labels, key_label):
     return (labels != key_label).astype(np.uint8) * 255
 
 
