@@ -62,11 +62,13 @@ def _islands(mask):
 
 def _filter_islands(mask, ids, min_object_pixels):
     values, counts = np.unique(ids.flatten(), return_counts=True)
-    ix = np.where(counts < min_object_pixels)
-    mask[np.isin(ids, values[ix])] = 0
+    values_ix = np.where(counts < min_object_pixels)
+    mask_ix = np.isin(ids, values[values_ix])
+    mask[mask_ix] = np.where(mask[mask_ix] == 255, 0, 255)
 
 
 def _flood_fill(ids, mask, i, j, val):
+    base_val = mask[i, j]
     queue = [(i, j)]
 
     while queue:
@@ -75,7 +77,7 @@ def _flood_fill(ids, mask, i, j, val):
         if i < 0 or i >= mask.shape[0] or j < 0 or j >= mask.shape[1]:
             continue
 
-        if mask[i, j] == 0 or ids[i, j] != 0:
+        if mask[i, j] != base_val or ids[i, j] != 0:
             continue
 
         ids[i, j] = val
@@ -107,4 +109,4 @@ filename = os.path.join(path, '41244/back.orf')
 with Image(filename=filename) as img:
     img.crop(left=0, top=0, width=4000, height=3000)
     chroma_key(img)
-    img.save(filename='chromakey.png')
+    img.save(filename='output.png')
