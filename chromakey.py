@@ -6,14 +6,18 @@ from wand.image import Image
 import numpy as np
 
 
-def chroma_key(img, num_object_colors=1, key_box=((0,0),(100,100)), min_object_pixels=100):
+def chroma_key(img, num_object_colors=1, key_box=((0,0),(100,100)), min_object_pixels=500):
     hsv = _hsv_points(img)
     hsv_cart = _hsv_to_cartesian(hsv)
     labels = _cluster(hsv_cart, num_object_colors+1, img)
     key_label = _choose_key(labels, key_box)
     mask = _create_mask(labels, key_label)
-    ids = _islands(mask)
-    _filter_islands(mask, ids, min_object_pixels)
+
+    while True:
+        ids = _islands(mask)
+        if not _filter_islands(mask, ids, min_object_pixels):
+            break
+
     _apply_mask(img, mask)
     img.trim()
 
@@ -62,9 +66,10 @@ def _islands(mask):
 
 def _filter_islands(mask, ids, min_object_pixels):
     values, counts = np.unique(ids.flatten(), return_counts=True)
-    values_ix = np.where(counts < min_object_pixels)
-    mask_ix = np.isin(ids, values[values_ix])
+    values_rm = values[np.where(counts < min_object_pixels)]
+    mask_ix = np.isin(ids, values_rm)
     mask[mask_ix] = np.where(mask[mask_ix] == 255, 0, 255)
+    return len(values_rm) > 0
 
 
 def _flood_fill(ids, mask, i, j, val):
@@ -104,9 +109,17 @@ def _apply_mask(img, mask):
 
 
 path = 'data/RAW/SC1/BR1'
-filename = os.path.join(path, '41244/back.orf')
 
-with Image(filename=filename) as img:
-    img.crop(left=0, top=0, width=4000, height=3000)
-    chroma_key(img)
-    img.save(filename='output.png')
+for dirpath, dirnames, filenames in os.walk(path):
+    for filename in filenames:
+        if not filename.endswith('.orf'):
+            continue
+
+        full_path = os.path.join(dirpath, filename)
+        print(full_path)
+
+        with Image(filename=full_path) as img:
+            img.crop(left=0, top=0, width=4000, height=3000)
+            chroma_key(img)
+            new_path = os.path.join(dirpath, filename.removesuffix('.orf') + '.png')
+            img.save(filename=new_path)
